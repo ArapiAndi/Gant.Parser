@@ -67,7 +67,7 @@ function processFile(file) {
 
 
         columns.forEach(() => contentColumn.push([]));
-        
+
 
 
         columns.forEach(col => {
@@ -91,7 +91,7 @@ function processFile(file) {
                                     return parts.length > 1 && cellExtracted.slice(0).trim().includes(parts[1].trim());
                                 }) + 1;
 
-                                if (indexFind > 0 && contentColumn[0][row] === ''){
+                                if (indexFind > 0 && contentColumn[0][row] === '') {
                                     isToPushValue = false;
                                     contentColumn[0][row] = '@@@';
                                 }
@@ -108,7 +108,26 @@ function processFile(file) {
             }
         });
 
-        contentColumn[0] = contentColumn[0].filter(item=>item!=='@@@');
+        const indexToDelete = contentColumn[0].reduce((acc, item, index) => {
+            if (item === '@@@') {
+                acc.push(index);
+            }
+            return acc;
+        }, []);
+
+        for (let index of indexToDelete) {
+            for (let col of [3, 4]) {
+                const columnIndex = columns.indexOf(col);
+                contentColumn[columnIndex][index] = '@@@'
+            }
+        }
+
+        for (let col of [0, 3, 4]) {
+            const columnIndex = columns.indexOf(col);
+            contentColumn[columnIndex]=  contentColumn[columnIndex].filter(elem => elem!=='@@@');
+        }
+
+        
         // Ensure all columns have the same length by filling with empty strings
         const maxRows = Math.max(...contentColumn.map(col => col.length));
         const finalContent = [];
@@ -117,6 +136,7 @@ function processFile(file) {
             const row = columns.map((col, colIndex) => contentColumn[colIndex][i] || "");
             finalContent.push(row);
         }
+        
         // Create a new worksheet with the extracted columns
         const newWorksheet = XLSX.utils.aoa_to_sheet(finalContent);
         const newWorkbook = XLSX.utils.book_new();
