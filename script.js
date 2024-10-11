@@ -67,6 +67,7 @@ function processFile(file) {
 
 
         columns.forEach(() => contentColumn.push([]));
+        
 
 
         columns.forEach(col => {
