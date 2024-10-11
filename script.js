@@ -60,41 +60,62 @@ function processFile(file) {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
-        // Extract the specified columns (0 and 2 in this case)
-        const columns = [0, 2]; // Indices of the columns you want to extract
-        const contentColumn = []; // Array to store the extracted column data
+
+        const columns = [0, 2, 5, 3, 4];
+        const contentColumn = [];
         const range = XLSX.utils.decode_range(worksheet['!ref']);
 
-        // Initialize contentColumn to have as many arrays as there are columns to be extracted
-        columns.forEach(() => contentColumn.push([])); // Prepare nested arrays for each column
 
-        // Process each specified column
+        columns.forEach(() => contentColumn.push([]));
+
+
         columns.forEach(col => {
             for (let row = range.s.r + 1; row <= range.e.r; row++) {
                 const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
                 const cell = worksheet[cellAddress];
+                let isToPushValue = true;
                 if (cell) {
                     let cellExtracted = cell.v;
-                    if (col === 0) {
-                        cellExtracted = cellExtracted.split(' ').slice(0, -1).join(' ');
+                    if (cellExtracted.length > 0) {
+                        cellExtracted = cellExtracted.trim();
+                        if (col === 0) {
+                            cellExtracted = cellExtracted.split(' ').slice(0, -1).join(' ').trim();
+                        }
+                        else if (col === 2) {
+                            cellExtracted = cellExtracted.slice(2);
+                            if (cellExtracted.length > 0) {
+
+                                let indexFind = contentColumn[0].findIndex(element => {
+                                    const parts = element.split(' - ');
+                                    return parts.length > 1 && cellExtracted.slice(0).trim().includes(parts[1].trim());
+                                }) + 1;
+
+                                if (indexFind > 0 && contentColumn[0][row] === ''){
+                                    isToPushValue = false;
+                                    contentColumn[0][row] = '@@@';
+                                }
+
+                                cellExtracted = cellExtracted.charAt(0).toUpperCase() + cellExtracted.slice(1);
+
+                            }
+
+                        }
                     }
-                    else if (col === 2) {
-                        cellExtracted = cellExtracted.slice(1).charAt(0).toUpperCase() + cellExtracted.slice(1);
-                    }
-                    contentColumn[columns.indexOf(col)].push(cellExtracted);
+                    if (isToPushValue)
+                        contentColumn[columns.indexOf(col)].push(cellExtracted);
                 }
             }
         });
 
+        contentColumn[0] = contentColumn[0].filter(item=>item!=='@@@');
         // Ensure all columns have the same length by filling with empty strings
         const maxRows = Math.max(...contentColumn.map(col => col.length));
         const finalContent = [];
 
         for (let i = 0; i < maxRows; i++) {
-            const row = columns.map((col, colIndex) => contentColumn[colIndex][i] || ""); // Fill with empty strings if undefined
+            const row = columns.map((col, colIndex) => contentColumn[colIndex][i] || "");
             finalContent.push(row);
         }
-
         // Create a new worksheet with the extracted columns
         const newWorksheet = XLSX.utils.aoa_to_sheet(finalContent);
         const newWorkbook = XLSX.utils.book_new();
